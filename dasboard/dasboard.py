@@ -14,27 +14,44 @@ st.set_page_config(
 st.title("☁️ Air Quality Analysis Dashboard")
 st.write("Analisis Kualitas Udara – Dataset Air Quality (Stasiun Huairou)")
 
-# ===============================
-# 1. LOAD DATA
-# ===============================
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+
+st.set_page_config(
+    page_title="Air Quality Analysis Dashboard",
+    layout="wide"
+)
+
+# ==============================
+# LOAD DATA 
+# ==============================
 @st.cache_data
 def load_data():
-    df = pd.read_csv("all_data.csv")
+    # Ambil path folder tempat dasboard.py berada
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # Gabungkan dengan nama file CSV
+    DATA_PATH = os.path.join(BASE_DIR, "all_data.csv")
+
+    df = pd.read_csv(DATA_PATH)
 
     # Feature engineering kolom date
-    if 'date' in df.columns:
-        df['date'] = pd.to_datetime(df['date'])
-    else:
-        df['date'] = pd.to_datetime(
-            df[['year', 'month', 'day', 'hour']]
-        )
+    if {'year', 'month', 'day'}.issubset(df.columns):
+        df['date'] = pd.to_datetime(df[['year', 'month', 'day']])
+
     return df
+
 
 try:
     df = load_data()
 except Exception as e:
-    st.error(f"Gagal memuat data. Pastikan file 'all_data.csv' berada di folder dasboard.\n\nError: {e}")
+    st.error("Gagal memuat data. Pastikan file 'all_data.csv' berada di folder 'dasboard'.")
+    st.error(f"Detail error: {e}")
     st.stop()
+
 
 # ===============================
 # SIDEBAR FILTER
