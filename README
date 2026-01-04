@@ -1,0 +1,157 @@
+#  Proyek Analisis Data: Kualitas Udara (Air Quality)
+
+##  Deskripsi Proyek
+
+Proyek ini bertujuan untuk melakukan **analisis data kualitas udara** menggunakan *Dataset Air Quality* dengan fokus pada **Stasiun Huairou**. Analisis dilakukan untuk memahami pola, tren, dan distribusi polutan udara serta mengelompokkan tingkat kualitas udara berdasarkan standar indeks kualitas udara (AQI).
+
+Proyek ini dikembangkan sebagai bagian dari **submission Proyek Data Analytics (PDA)** dan telah disesuaikan sepenuhnya dengan **kriteria penilaian dan revisi evaluator**.
+
+---
+
+##  Tujuan Analisis
+
+1. Mengidentifikasi **tren konsentrasi polutan udara (PM2.5, PM10, NO2)** berdasarkan waktu.
+2. Menentukan **periode waktu (jam) dengan kualitas udara terburuk**.
+3. Mengelompokkan kualitas udara ke dalam kategori **Sehat, Sedang, Buruk, dan Sangat Buruk** menggunakan *manual grouping AQI*.
+4. Menyajikan hasil analisis dalam bentuk **visualisasi dan dashboard interaktif**.
+
+---
+
+##  Pertanyaan Bisnis (SMART Question)
+
+1. **Bagaimana tren rata-rata konsentrasi PM2.5, PM10, dan NO2 berdasarkan waktu (harian dan bulanan) di Stasiun Huairou selama periode pengamatan?**
+2. **Pada jam berapa kualitas udara paling buruk berdasarkan konsentrasi PM2.5 di Stasiun Huairou?**
+3. **Bagaimana distribusi kategori kualitas udara (Sehat–Sangat Buruk) berdasarkan manual grouping AQI?**
+
+Pertanyaan di atas disusun berdasarkan prinsip **SMART (Specific, Measurable, Action-oriented, Relevant, Time-bound)**.
+
+---
+
+##  Dataset
+
+* **Nama Dataset:** Air Quality Dataset
+* **Sumber:** PRSA (Beijing Multi-Site Air-Quality Data)
+* **Stasiun yang Dianalisis:** Huairou
+* **Format:** CSV (diekstrak dari ZIP)
+
+Kolom utama yang digunakan:
+
+* `PM2.5`, `PM10`, `NO2`
+* `year`, `month`, `day`, `hour`
+
+---
+
+## 🔧 Tahapan Analisis Data
+
+### 1 Data Wrangling
+
+* **Assessing Data:**
+
+  * Pemeriksaan struktur data
+  * Missing value
+  * Data duplikat
+  * Statistik deskriptif
+* **Cleaning Data:**
+
+  * Menghapus data duplikat
+  * Menangani missing value
+* **Feature Engineering:**
+
+  * Membuat kolom `date` dari `year`, `month`, `day`, dan `hour`
+
+---
+
+### 2 Exploratory Data Analysis (EDA)
+
+* Analisis tren polutan berdasarkan waktu
+* Agregasi data menggunakan `groupby()`
+* Analisis rata-rata PM2.5 berdasarkan jam
+* Distribusi kategori kualitas udara
+
+---
+
+### 3 Manual Grouping AQI
+
+Pengelompokan kualitas udara dilakukan **tanpa algoritma machine learning**, berdasarkan konsentrasi PM2.5:
+
+| PM2.5 (µg/m³) | Kategori     |
+| ------------- | ------------ |
+| ≤ 12          | Sehat        |
+| 12 – 35.4     | Sedang       |
+| 35.4 – 55.4   | Buruk        |
+| > 55.4        | Sangat Buruk |
+
+---
+
+##  Visualisasi Data
+
+* Line chart tren polutan harian
+* Bar chart rata-rata PM2.5 berdasarkan jam
+* Pie chart distribusi kategori kualitas udara
+
+Visualisasi dibuat dengan memperhatikan **prinsip desain dan integritas visualisasi data**.
+
+---
+
+##  Insight Utama
+
+* PM2.5 dan PM10 menunjukkan fluktuasi tinggi dan menjadi polutan dominan.
+* Kualitas udara terburuk terjadi pada **malam hingga dini hari**.
+* Mayoritas kondisi udara berada pada kategori **Sedang dan Buruk**.
+
+---
+
+##  Kesimpulan & Rekomendasi
+
+### Kesimpulan
+
+Kualitas udara di Stasiun Huairou cenderung berada pada tingkat yang belum optimal, dengan beberapa periode ekstrem yang berpotensi membahayakan kesehatan.
+
+### Rekomendasi
+
+* Peringatan kualitas udara pada jam malam
+* Pengurangan emisi kendaraan dan aktivitas pembakaran
+* Edukasi masyarakat terkait risiko kualitas udara
+
+---
+
+##  Dashboard Interaktif (Streamlit)
+
+Dashboard dibuat menggunakan **Streamlit** dengan fitur:
+
+* Filter rentang waktu
+* Visualisasi tren PM2.5
+* Visualisasi kualitas udara berdasarkan jam
+
+> Dashboard selaras dengan analisis yang ditampilkan pada notebook.
+
+---
+
+##  Tools & Library
+
+* Python
+* Pandas
+* NumPy
+* Matplotlib
+* Seaborn
+* Streamlit
+
+---
+
+##  Cara Menjalankan Proyek
+
+### Notebook (Google Colab)
+
+1. Upload dataset ZIP
+2. Jalankan seluruh cell secara berurutan
+
+### Dashboard
+
+```bash
+streamlit run dashboard.py
+```
+
+---
+
+
+**Dibuat oleh:** Naufal Daffa Abdu Al Hafidl
