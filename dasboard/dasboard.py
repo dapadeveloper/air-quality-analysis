@@ -1,189 +1,90 @@
-import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+import streamlit as st
+from babel.numbers import format_currency
 
-# =====================================================
-# KONFIGURASI HALAMAN (WAJIB HANYA 1 KALI)
-# =====================================================
-st.set_page_config(
-    page_title="Air Quality Analysis Dashboard",
-    layout="wide"
-)
+sns.set(style='dark')
 
-# =====================================================
-# JUDUL & DESKRIPSI
-# =====================================================
-st.title("☁️ Air Quality Analysis Dashboard")
-st.write(
-    "Dashboard ini menampilkan hasil analisis kualitas udara "
-    "berdasarkan Dataset Air Quality pada Stasiun **Huairou**."
-)
+# Helper function untuk menyiapkan data
+def create_monthly_df(df):
+    monthly_df = df.resample(rule='M', on='datetime').agg({
+        "PM2.5": "mean"
+    }).reset_index()
+    return monthly_df
 
-# =====================================================
-# LOAD DATA
-# =====================================================
-@st.cache_data
-def load_data():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_dir, "all_data.csv")
+def create_yearly_df(df):
+    yearly_df = df.groupby('year')['PM2.5'].mean().reset_index()
+    return yearly_df
 
-    df = pd.read_csv(data_path)
+def create_hourly_df(df):
+    hourly_df = df.groupby('hour')['PM2.5'].mean().reset_index()
+    return hourly_df
 
-    # Feature Engineering: membuat kolom date
-    if {"year", "month", "day"}.issubset(df.columns):
-        df["date"] = pd.to_datetime(df[["year", "month", "day"]])
+# Load dataset
+df = pd.read_csv("PRSA_Data_Dingling_20130301-20170228.csv")
+df['datetime'] = pd.to_datetime(df[['year', 'month', 'day', 'hour']])
+df['PM2.5'].fillna(df['PM2.5'].mean(), inplace=True)
 
-    return df
-
-
-try:
-    df = load_data()
-except Exception as e:
-    st.error("❌ Gagal memuat data. Pastikan file `all_data.csv` berada di folder `dasboard`.")
-    st.error(f"Detail error: {e}")
-    st.stop()
-
-# =====================================================
-# SIDEBAR - FILTER DATA
-# =====================================================
+# Komponen Sidebar
 with st.sidebar:
-    st.header("🔎 Filter Waktu")
-
-    start_date = st.date_input(
-        "Tanggal Mulai",
-        df["date"].min().date()
+    st.image("https://github.com/dicodingacademy/assets/raw/main/logo.png")
+    st.title("Air Quality: Dingling")
+    
+    # Filter Tahun
+    start_year, end_year = st.slider(
+        label='Rentang Tahun',
+        min_value=2013,
+        max_value=2017,
+        value=(2013, 2017)
     )
 
-    end_date = st.date_input(
-        "Tanggal Akhir",
-        df["date"].max().date()
-    )
+main_df = df[(df['year'] >= start_year) & (df['year'] <= end_year)]
 
-# Filter dataframe berdasarkan tanggal
-filtered_df = df[
-    (df["date"] >= pd.to_datetime(start_date)) &
-    (df["date"] <= pd.to_datetime(end_date))
-]
+# Header
+st.header('Dashboard Kualitas Udara Stasiun Dingling :cloud:')
 
-# =====================================================
-# RINGKASAN STATISTIK
-# =====================================================
-st.subheader("📊 Ringkasan Statistik Polutan")
-
-col1, col2, col3 = st.columns(3)
-
-col1.metric(
-    label="Rata-rata PM2.5",
-    value=f"{filtered_df['PM2.5'].mean():.2f}"
-)
-
-col2.metric(
-    label="Rata-rata PM10",
-    value=f"{filtered_df['PM10'].mean():.2f}"
-)
-
-col3.metric(
-    label="Rata-rata NO2",
-    value=f"{filtered_df['NO2'].mean():.2f}"
-)
-
-st.markdown("---")
-
-# =====================================================
-# PERTANYAAN 1
-# Tren Polutan dari Waktu ke Waktu
-# =====================================================
-st.subheader("1️⃣ Bagaimana tren konsentrasi polutan dari waktu ke waktu?")
-
-polutan_list = ["PM2.5", "PM10", "NO2", "SO2", "CO", "O3"]
-selected_polutan = st.selectbox("Pilih jenis polutan:", polutan_list)
-
-monthly_df = (
-    filtered_df
-    .set_index("date")
-    .resample("M")
-    .mean(numeric_only=True)
-)
-
-fig, ax = plt.subplots(figsize=(12, 5))
-ax.plot(
-    monthly_df.index,
-    monthly_df[selected_polutan],
-    linewidth=2
-)
-ax.set_title(f"Rata-rata Bulanan {selected_polutan}")
-ax.set_xlabel("Tahun")
-ax.set_ylabel("Konsentrasi")
-ax.grid(alpha=0.4)
-
+# Pertanyaan 1: Tren Bulanan
+st.subheader('Tren Bulanan PM2.5')
+monthly_df = create_monthly_df(main_df)
+fig, ax = plt.subplots(figsize=(16, 8))
+ax.plot(monthly_df["datetime"], monthly_df["PM2.5"], marker='o', linewidth=2, color="#90CAF9")
+ax.set_title("Rata-rata Konsentrasi PM2.5 Bulanan", fontsize=20)
+ax.tick_params(axis='y', labelsize=15)
+ax.tick_params(axis='x', labelsize=15)
 st.pyplot(fig)
+st.write("Insight: Terlihat pola musiman di mana polusi melonjak tajam pada awal tahun.")
 
-st.write(
-    f"**Insight:** Grafik menunjukkan bahwa konsentrasi **{selected_polutan}** "
-    "mengalami fluktuasi dari waktu ke waktu dengan pola tertentu. "
-    "Hal ini mengindikasikan adanya pengaruh faktor musiman serta aktivitas manusia "
-    "terhadap kualitas udara di Stasiun Huairou."
-)
+# Pertanyaan 2 & 3: Perbandingan Tahun & Jam
+col1, col2 = st.columns(2)
 
-st.markdown("---")
+with col1:
+    st.subheader("Rata-rata Tahunan")
+    yearly_df = create_yearly_df(main_df)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.barplot(data=yearly_df, x='year', y='PM2.5', palette="viridis", ax=ax)
+    st.pyplot(fig)
 
-# =====================================================
-# PERTANYAAN 2
-# Pengaruh Faktor Cuaca terhadap PM2.5
-# =====================================================
-st.subheader("2️⃣ Bagaimana pengaruh faktor cuaca terhadap konsentrasi PM2.5?")
+with col2:
+    st.subheader("Pola Harian (Jam)")
+    hourly_df = create_hourly_df(main_df)
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.lineplot(data=hourly_df, x='hour', y='PM2.5', marker='o', color="crimson", ax=ax)
+    st.pyplot(fig)
 
-left_col, right_col = st.columns(2)
+# Analisis Lanjutan (Clustering)
+st.subheader("Distribusi Kategori Kualitas Udara (Clustering)")
+def categorize_aqi(pm_value):
+    if pm_value <= 12: return 'Good'
+    elif pm_value <= 35.4: return 'Moderate'
+    elif pm_value <= 55.4: return 'Unhealthy for Sensitive Groups'
+    elif pm_value <= 150.4: return 'Unhealthy'
+    else: return 'Very Unhealthy'
 
-with left_col:
-    weather_var = st.radio(
-        "Pilih variabel cuaca:",
-        ["TEMP", "DEWP"],
-        horizontal=True
-    )
-
-    sample_df = filtered_df.sample(
-        n=min(1000, len(filtered_df)),
-        random_state=42
-    )
-
-    fig2, ax2 = plt.subplots(figsize=(8, 6))
-    sns.regplot(
-        x=weather_var,
-        y="PM2.5",
-        data=sample_df,
-        scatter_kws={"alpha": 0.4},
-        line_kws={"color": "red"}
-    )
-    ax2.set_title(f"Korelasi {weather_var} terhadap PM2.5")
-
-    st.pyplot(fig2)
-
-with right_col:
-    corr_value = filtered_df[weather_var].corr(filtered_df["PM2.5"])
-
-    st.metric(
-        label=f"Koefisien Korelasi {weather_var} vs PM2.5",
-        value=f"{corr_value:.3f}"
-    )
-
-    if corr_value > 0:
-        st.write(
-            f"**Insight:** Terdapat korelasi **positif** antara {weather_var} dan PM2.5. "
-            "Artinya, peningkatan nilai variabel cuaca ini cenderung diikuti "
-            "oleh peningkatan konsentrasi PM2.5."
-        )
-    else:
-        st.write(
-            f"**Insight:** Terdapat korelasi **negatif** antara {weather_var} dan PM2.5. "
-            "Artinya, peningkatan nilai variabel cuaca ini cenderung diikuti "
-            "oleh penurunan konsentrasi PM2.5."
-        )
-
-# =====================================================
-# FOOTER
-# =====================================================
-st.markdown("---")
-st.caption("📘 Proyek Analisis Data Air Quality | Dashboard Streamlit")
+main_df['AQI_Category'] = main_df['PM2.5'].apply(categorize_aqi)
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.countplot(data=main_df, x='AQI_Category', 
+              order=['Good', 'Moderate', 'Unhealthy for Sensitive Groups', 'Unhealthy', 'Very Unhealthy'],
+              palette='magma', ax=ax)
+st.pyplot(fig)
+st.caption('Naufal Daffa Abdu Al Hafidl')
