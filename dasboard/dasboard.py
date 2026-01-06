@@ -36,9 +36,6 @@ if df is None:
 
 # --- Sidebar ---
 with st.sidebar:
-    # Logo Dicoding
-    st.image("https://raw.githubusercontent.com/dicodingacademy/assets/main/logo.png", width=200)
-    st.markdown("---")
     st.title("Filter Panel")
     
     # Filter Tahun
