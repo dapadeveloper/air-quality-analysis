@@ -22,7 +22,7 @@ def create_hourly_df(df):
     return hourly_df
 
 # Load dataset
-df = pd.read_csv("PRSA_Data_Dingling_20130301-20170228.csv")
+df = pd.read_csv("all.csv")
 df['datetime'] = pd.to_datetime(df[['year', 'month', 'day', 'hour']])
 df['PM2.5'].fillna(df['PM2.5'].mean(), inplace=True)
 
