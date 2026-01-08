@@ -2,27 +2,30 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+import os
 
-# Set page title
+# Konfigurasi halaman
 st.set_page_config(page_title="Air Quality Dashboard", layout="wide")
 
-# Load data yang sudah bersih
+# Fungsi load data dengan penanganan path (menghindari FileNotFoundError)
 @st.cache_data
 def load_data():
-    # Mengambil path folder tempat dashboard.py berada
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # Menggabungkan path folder dengan nama file csv
     file_path = os.path.join(current_dir, "all_data.csv")
-    
     df = pd.read_csv(file_path)
     df['datetime'] = pd.to_datetime(df['datetime'])
     return df
 
-all_df = load_data()
+# Memanggil data
+try:
+    all_df = load_data()
+except Exception as e:
+    st.error(f"Gagal memuat data: {e}")
+    st.stop()
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.header("Filter Data")
+    st.header("Filter Analisis")
     
     # Filter Stasiun
     stations = st.multiselect(
@@ -35,61 +38,65 @@ with st.sidebar:
 main_df = all_df[all_df["station"].isin(stations)]
 
 # --- MAIN PAGE ---
-st.title("Air Quality Analysis Dashboard 🌬️")
-st.markdown("Dashboard ini menyajikan hasil analisis kualitas udara (PM2.5) berdasarkan pertanyaan bisnis.")
+st.title("Air Quality Analysis Dashboard ")
+st.markdown(f"**Nama:** {all_df.columns.get_loc if 'Nama' in locals() else 'Naufal Daffa Abdu Al Hafidl'}")
 
-# --- Pertanyaan 1: Tren Bulanan ---
-st.header("1. Tren Kualitas Udara (PM2.5) Bulanan")
+# Menampilkan Ringkasan Data
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Total Observasi", value=main_df.shape[0])
+with col2:
+    st.metric("Rata-rata PM2.5", value=round(main_df['PM2.5'].mean(), 2))
+with col3:
+    st.metric("Jumlah Stasiun", value=main_df['station'].nunique())
+
+st.divider()
+
+# --- URUTAN SESUAI PERTANYAAN BISNIS DI NOTEBOOK ---
+
+# 1. Tren PM2.5 Berdasarkan Waktu (Bulanan)
+st.header("1. Tren Kualitas Udara (PM2.5) Berdasarkan Waktu")
 monthly_trend = main_df.groupby('month')['PM2.5'].mean()
 
-fig, ax = plt.subplots(figsize=(10, 5))
+fig, ax = plt.subplots(figsize=(12, 6))
 ax.plot(monthly_trend.index, monthly_trend.values, marker='o', linewidth=2, color='#3970F1')
 ax.set_xticks(range(1, 13))
 ax.set_xticklabels(['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'])
-ax.set_xlabel("Bulan")
-ax.set_ylabel("Rata-rata PM2.5")
-ax.grid(True, linestyle='--', alpha=0.6)
+ax.set_xlabel("Bulan", fontsize=12)
+ax.set_ylabel("Konsentrasi PM2.5 (µg/m³)", fontsize=12)
+ax.grid(True, linestyle='--', alpha=0.5)
 st.pyplot(fig)
 
-with st.expander("Lihat Insight Tren Bulanan"):
-    st.write("""
-    Kualitas udara memburuk secara signifikan pada bulan **Januari, Februari, dan Desember**. 
-    Hal ini menunjukkan pola musiman di mana polusi jauh lebih tinggi selama musim dingin.
-    """)
+st.info("💡 **Insight:** Konsentrasi PM2.5 cenderung meningkat pada bulan-bulan dingin (Januari & Desember) dan menurun di pertengahan tahun.")
 
-# --- Pertanyaan 2: Perbandingan Stasiun ---
-st.header("2. Tingkat Polusi Tertinggi & Terendah per Stasiun")
+# 2. Lokasi/Stasiun Tertinggi & Terendah
+st.header("2. Perbandingan Polusi PM2.5 Antar Stasiun")
 station_rank = main_df.groupby('station')['PM2.5'].mean().sort_values(ascending=True)
 
-fig, ax = plt.subplots(figsize=(10, 6))
-colors = ["#D3D3D3"] * (len(station_rank) - 1) + ["#72BCD4"] # Highlight tertinggi
+fig, ax = plt.subplots(figsize=(12, 6))
+# Memberikan warna highlight pada yang tertinggi
+colors = ["#D3D3D3"] * (len(station_rank) - 1) + ["#72BCD4"] 
 station_rank.plot(kind='barh', color=colors, ax=ax)
-ax.set_xlabel("Rata-rata PM2.5")
-ax.set_ylabel("Stasiun")
+ax.set_xlabel("Rata-rata Konsentrasi PM2.5 (µg/m³)", fontsize=12)
+ax.set_ylabel("Nama Stasiun", fontsize=12)
 st.pyplot(fig)
 
-with st.expander("Lihat Insight Perbandingan Stasiun"):
-    st.write("""
-    Stasiun dengan rata-rata polusi tertinggi teridentifikasi di wilayah pusat kota, 
-    sedangkan stasiun seperti **Dingling** secara konsisten menunjukkan tingkat polusi terendah.
-    """)
+st.info("💡 **Insight:** Stasiun tertentu (seperti Dongsi/Guanyuan) menunjukkan tingkat polusi yang lebih kritis dibandingkan stasiun pinggiran seperti Dingling.")
 
-# --- Pertanyaan 3: Pola Harian ---
-st.header("3. Pola Konsentrasi Polutan Harian (Jam)")
+# 3. Pola Konsentrasi Harian
+st.header("3. Pola Konsentrasi PM2.5 Berdasarkan Waktu Harian")
 hourly_trend = main_df.groupby('hour')['PM2.5'].mean()
 
-fig, ax = plt.subplots(figsize=(10, 5))
+fig, ax = plt.subplots(figsize=(12, 6))
 ax.plot(hourly_trend.index, hourly_trend.values, color='#E64545', linewidth=2)
 ax.fill_between(hourly_trend.index, hourly_trend.values, color='#E64545', alpha=0.1)
 ax.set_xticks(range(0, 24))
-ax.set_xlabel("Jam")
-ax.set_ylabel("Rata-rata PM2.5")
+ax.set_xlabel("Jam (24 Jam)", fontsize=12)
+ax.set_ylabel("Rata-rata PM2.5 (µg/m³)", fontsize=12)
+ax.grid(axis='y', linestyle='--', alpha=0.7)
 st.pyplot(fig)
 
-with st.expander("Lihat Insight Pola Harian"):
-    st.write("""
-    Terdapat siklus dua puncak (pagi dan malam hari) yang berkorelasi dengan jam sibuk 
-    aktivitas transportasi manusia.
-    """)
+st.info("💡 **Insight:** Terdapat pola bimodal (dua puncak) yang terjadi pada pagi hari dan malam hari, berkaitan dengan jam sibuk kendaraan.")
 
-st.caption('Copyright (c) Naufal Daffa 2026')
+st.divider()
+st.caption("Copyright (c) Naufal Daffa 2026 - Air Quality Project")
