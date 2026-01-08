@@ -9,7 +9,12 @@ st.set_page_config(page_title="Air Quality Dashboard", layout="wide")
 # Load data yang sudah bersih
 @st.cache_data
 def load_data():
-    df = pd.read_csv("all_data.csv")
+    # Mengambil path folder tempat dashboard.py berada
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Menggabungkan path folder dengan nama file csv
+    file_path = os.path.join(current_dir, "all_data.csv")
+    
+    df = pd.read_csv(file_path)
     df['datetime'] = pd.to_datetime(df['datetime'])
     return df
 
